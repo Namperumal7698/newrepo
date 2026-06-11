@@ -1,0 +1,88 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Horizon - Application Configuration
+# ─────────────────────────────────────────────────────────────────────────────
+# Each app has:
+#   - name        : display name (used in UI + chatbot matching)
+#   - url         : health check URL
+#   - ssh_user    : service account for SSH (same across all servers of this app)
+#   - ssh_key     : path to private key on THIS central server
+#   - servers     : list of servers (host + label)
+#   - commands    : start / stop / status shell commands to run on destination
+# ─────────────────────────────────────────────────────────────────────────────
+
+apps:
+
+  - name: Jenkins
+    url: http://jenkins.internal:8080
+    ssh_user: svc_jenkins
+    ssh_key: /home/nambi/.ssh/id_rsa
+    servers:
+      - host: 192.168.1.10
+        label: Jenkins-Primary
+      - host: 192.168.1.11
+        label: Jenkins-Secondary
+      - host: 192.168.1.12
+        label: Jenkins-DR
+    commands:
+      start:  "cd /opt/jenkins/bin && ./start.sh"
+      stop:   "cd /opt/jenkins/bin && ./stop.sh"
+      status: "cd /opt/jenkins/bin && ./status.sh"
+
+  - name: Flipkart
+    url: https://www.flipkart.com
+    ssh_user: svc_flipkart
+    ssh_key: /home/nambi/.ssh/id_rsa
+    servers:
+      - host: 192.168.2.10
+        label: Flipkart-App1
+      - host: 192.168.2.11
+        label: Flipkart-App2
+      - host: 192.168.2.12
+        label: Flipkart-App3
+    commands:
+      start:  "cd /opt/flipkart/startup && ./start.sh"
+      stop:   "cd /opt/flipkart/startup && ./stop.sh"
+      status: "cd /opt/flipkart/startup && ./status.sh"
+
+  - name: Tomcat
+    url: http://tomcat.internal:8080
+    ssh_user: svc_tomcat
+    ssh_key: /home/nambi/.ssh/id_rsa
+    servers:
+      - host: 192.168.3.10
+        label: Tomcat-Node1
+      - host: 192.168.3.11
+        label: Tomcat-Node2
+    commands:
+      start:  "cd /opt/tomcat/bin && ./startup.sh"
+      stop:   "cd /opt/tomcat/bin && ./shutdown.sh"
+      status: "ps -ef | grep tomcat | grep -v grep"
+
+  - name: SonarQube
+    url: http://sonar.internal:9000
+    ssh_user: svc_sonar
+    ssh_key: /home/nambi/.ssh/id_rsa
+    servers:
+      - host: 192.168.4.10
+        label: SonarQube-Main
+    commands:
+      start:  "cd /opt/sonarqube/bin/linux-x86-64 && ./sonar.sh start"
+      stop:   "cd /opt/sonarqube/bin/linux-x86-64 && ./sonar.sh stop"
+      status: "cd /opt/sonarqube/bin/linux-x86-64 && ./sonar.sh status"
+
+  - name: Nexus
+    url: http://nexus.internal:8081
+    ssh_user: svc_nexus
+    ssh_key: /home/nambi/.ssh/id_rsa
+    servers:
+      - host: 192.168.5.10
+        label: Nexus-Main
+    commands:
+      start:  "cd /opt/nexus/bin && ./nexus start"
+      stop:   "cd /opt/nexus/bin && ./nexus stop"
+      status: "cd /opt/nexus/bin && ./nexus status"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Add more apps below following the same pattern.
+# ssh_user and ssh_key can be different per app if needed.
+# ─────────────────────────────────────────────────────────────────────────────

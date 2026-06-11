@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Horizon — Command Center</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600&display=swap');
+
+    :root {
+      --bg:      #0d0f14;
+      --surface: #151820;
+      --card:    #1a1d27;
+      --border:  #232738;
+      --accent:  #4f8ef7;
+      --green:   #38d9a9;
+      --red:     #f76f6f;
+      --yellow:  #f7c948;
+      --text:    #e2e8f0;
+      --muted:   #64748b;
+      --mono:    'JetBrains Mono', monospace;
+      --sans:    'Inter', sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; }
+
+    /* ── Header ── */
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 28px; border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+    .logo { font-family: var(--mono); font-size: 1.05rem; font-weight: 700; letter-spacing: 0.1em; color: var(--accent); }
+    .logo em { color: var(--muted); font-style: normal; font-weight: 400; }
+    .header-right { display: flex; align-items: center; gap: 18px; }
+    .clock { font-family: var(--mono); font-size: 0.78rem; color: var(--muted); }
+    .env-badge { font-family: var(--mono); font-size: 0.68rem; font-weight: 600; padding: 3px 10px; border-radius: 20px; background: rgba(56,217,169,0.1); color: var(--green); border: 1px solid rgba(56,217,169,0.25); letter-spacing: 0.08em; }
+
+    /* ── Tabs ── */
+    .tabs {
+      display: flex; padding: 0 28px;
+      border-bottom: 1px solid var(--border); background: var(--surface);
+    }
+    .tab-btn {
+      font-family: var(--mono); font-size: 0.75rem; font-weight: 600;
+      letter-spacing: 0.07em; padding: 13px 24px;
+      border: none; background: transparent; color: var(--muted);
+      cursor: pointer; border-bottom: 2px solid transparent;
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .tab-btn:hover:not(.active) { color: var(--text); }
+
+    /* ── Panels ── */
+    .panel { display: none; padding: 28px; }
+    .panel.active { display: block; }
+
+    /* ── Health Panel ── */
+    .panel-topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+    .panel-title { font-family: var(--mono); font-size: 0.7rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+
+    .summary-bar { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+    .s-chip { font-family: var(--mono); font-size: 0.75rem; padding: 6px 14px; border-radius: 4px; border: 1px solid var(--border); color: var(--muted); }
+    .s-chip strong { color: var(--text); }
+    .s-chip.up strong   { color: var(--green); }
+    .s-chip.down strong { color: var(--red); }
+
+    .refresh-btn {
+      font-family: var(--mono); font-size: 0.73rem; font-weight: 600;
+      padding: 7px 16px; background: transparent;
+      border: 1px solid var(--border); color: var(--accent); border-radius: 4px;
+      cursor: pointer; display: flex; align-items: center; gap: 6px; transition: background 0.15s;
+    }
+    .refresh-btn:hover { background: rgba(79,142,247,0.1); }
+    .refresh-btn.spin .ri { animation: spin 0.8s linear infinite; display: inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── App Cards ── */
+    .app-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 14px; }
+    .app-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 12px;
+      transition: border-color 0.2s;
+    }
+    .app-card:hover { border-color: #2e3450; }
+    .app-card.UP   { border-left: 3px solid var(--green); }
+    .app-card.DOWN { border-left: 3px solid var(--red); }
+
+    .card-row1 { display: flex; align-items: center; justify-content: space-between; }
+    .app-name { font-family: var(--mono); font-size: 0.9rem; font-weight: 600; }
+    .badge {
+      font-family: var(--mono); font-size: 0.65rem; font-weight: 700;
+      letter-spacing: 0.1em; padding: 3px 10px; border-radius: 20px;
+    }
+    .badge.UP      { background: rgba(56,217,169,0.12); color: var(--green); border: 1px solid rgba(56,217,169,0.3); }
+    .badge.DOWN    { background: rgba(247,111,111,0.12); color: var(--red);   border: 1px solid rgba(247,111,111,0.3); }
+    .badge.CHECKING{ background: rgba(100,116,139,0.15); color: var(--muted); border: 1px solid var(--border); }
+
+    .app-url { font-family: var(--mono); font-size: 0.68rem; color: var(--muted); word-break: break-all; }
+    .card-meta { display: flex; align-items: center; justify-content: space-between; }
+    .http-code { font-family: var(--mono); font-size: 0.7rem; color: var(--muted); }
+    .server-count { font-family: var(--mono); font-size: 0.68rem; color: var(--muted); }
+    .server-tags { display: flex; flex-wrap: wrap; gap: 5px; }
+    .server-tag {
+      font-family: var(--mono); font-size: 0.63rem; padding: 2px 8px;
+      background: rgba(79,142,247,0.08); border: 1px solid rgba(79,142,247,0.2);
+      border-radius: 3px; color: var(--accent);
+    }
+    .status-bar { height: 2px; background: var(--border); border-radius: 2px; overflow: hidden; margin-top: 2px; }
+    .status-fill { height: 100%; border-radius: 2px; width: 0; transition: width 0.5s ease; }
+    .status-fill.UP   { background: var(--green); width: 100%; }
+    .status-fill.DOWN { background: var(--red);   width: 100%; }
+
+    /* ── Chat Panel ── */
+    .chat-wrap { max-width: 780px; margin: 0 auto; display: flex; flex-direction: column; height: calc(100vh - 158px); }
+    .hint-row { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 14px; }
+    .hint-chip {
+      font-family: var(--mono); font-size: 0.7rem; padding: 5px 12px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 20px; color: var(--muted); cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .hint-chip:hover { color: var(--accent); border-color: var(--accent); }
+
+    .chat-history {
+      flex: 1; overflow-y: auto; display: flex; flex-direction: column;
+      gap: 14px; padding-bottom: 14px;
+      scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+    }
+    .bubble { display: flex; flex-direction: column; max-width: 88%; }
+    .bubble.user { align-self: flex-end; align-items: flex-end; }
+    .bubble.bot  { align-self: flex-start; align-items: flex-start; }
+    .bubble-label { font-family: var(--mono); font-size: 0.62rem; font-weight: 700; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 4px; }
+    .bubble-body {
+      padding: 11px 15px; border-radius: 7px;
+      font-size: 0.87rem; line-height: 1.65; white-space: pre-wrap; word-break: break-word;
+    }
+    .bubble.user .bubble-body { background: rgba(79,142,247,0.13); border: 1px solid rgba(79,142,247,0.22); color: var(--text); }
+    .bubble.bot  .bubble-body { background: var(--card); border: 1px solid var(--border); color: var(--text); font-family: var(--mono); font-size: 0.8rem; }
+    .bubble.bot  .bubble-body .cmd-block {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 4px;
+      padding: 7px 10px; margin-top: 6px; font-size: 0.75rem; color: var(--green); display: block;
+    }
+
+    /* server selection buttons */
+    .server-btns { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; }
+    .server-btn {
+      font-family: var(--mono); font-size: 0.72rem; font-weight: 600;
+      padding: 6px 14px; border-radius: 5px; cursor: pointer;
+      background: rgba(79,142,247,0.1); border: 1px solid rgba(79,142,247,0.3);
+      color: var(--accent); transition: background 0.15s;
+    }
+    .server-btn:hover { background: rgba(79,142,247,0.2); }
+
+    .typing-dots { display: flex; gap: 5px; padding: 3px 0; }
+    .typing-dots span { width: 7px; height: 7px; background: var(--muted); border-radius: 50%; animation: blink 1.2s infinite; }
+    .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes blink { 0%,80%,100%{opacity:0.2} 40%{opacity:1} }
+
+    .chat-input-row { display: flex; gap: 10px; padding-top: 14px; border-top: 1px solid var(--border); }
+    .chat-input {
+      flex: 1; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 6px; padding: 11px 15px;
+      font-family: var(--mono); font-size: 0.83rem; color: var(--text); outline: none;
+      transition: border-color 0.2s;
+    }
+    .chat-input::placeholder { color: var(--muted); }
+    .chat-input:focus { border-color: var(--accent); }
+    .send-btn {
+      background: var(--accent); border: none; border-radius: 6px;
+      padding: 11px 22px; font-family: var(--mono); font-size: 0.8rem;
+      font-weight: 700; color: #fff; cursor: pointer; transition: opacity 0.15s;
+    }
+    .send-btn:hover { opacity: 0.85; }
+    .send-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">HORIZON <em>/ Command Center</em></div>
+  <div class="header-right">
+    <span class="env-badge">PRODUCTION</span>
+    <span class="clock" id="clock">--:--:--</span>
+  </div>
+</header>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('health', this)">⬡ APP HEALTH</button>
+  <button class="tab-btn" onclick="switchTab('chat', this)">⌘ CHATBOT</button>
+</div>
+
+<!-- ── HEALTH PANEL ── -->
+<div class="panel active" id="panel-health">
+  <div class="panel-topbar">
+    <span class="panel-title">Application Status Monitor</span>
+    <button class="refresh-btn" id="refreshBtn" onclick="loadHealth()">
+      <span class="ri">↻</span> Refresh
+    </button>
+  </div>
+  <div class="summary-bar" id="summaryBar">
+    <div class="s-chip">Loading…</div>
+  </div>
+  <div class="app-grid" id="appGrid"></div>
+</div>
+
+<!-- ── CHAT PANEL ── -->
+<div class="panel" id="panel-chat">
+  <div class="chat-wrap">
+    <div class="hint-row" id="hintRow">
+      <!-- filled dynamically from /api/apps -->
+    </div>
+    <div class="chat-history" id="chatHistory">
+      <div class="bubble bot">
+        <div class="bubble-label">HORIZON BOT</div>
+        <div class="bubble-body">Hey! I'm Horizon Bot 👋
+Tell me what to do — for example:
+• "start Jenkins"
+• "status Tomcat"
+• "stop SonarQube"
+
+If an app has multiple servers, I'll ask you which one.</div>
+      </div>
+    </div>
+    <div class="chat-input-row">
+      <input class="chat-input" id="chatInput" placeholder="e.g. start jenkins …" onkeydown="if(event.key==='Enter') sendChat()"/>
+      <button class="send-btn" id="sendBtn" onclick="sendChat()">Send</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Session ID (per browser tab) ─────────────────────────────────────────────
+const SESSION_ID = Math.random().toString(36).slice(2);
+
+// ── Clock ─────────────────────────────────────────────────────────────────────
+setInterval(() => {
+  document.getElementById('clock').textContent = new Date().toLocaleTimeString('en-IN', {hour12: false});
+}, 1000);
+
+// ── Tabs ──────────────────────────────────────────────────────────────────────
+function switchTab(tab, btn) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + tab).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ── Health ────────────────────────────────────────────────────────────────────
+async function loadHealth() {
+  const btn = document.getElementById('refreshBtn');
+  btn.classList.add('spin');
+  const grid = document.getElementById('appGrid');
+  const bar  = document.getElementById('summaryBar');
+
+  grid.innerHTML = Array(4).fill(`
+    <div class="app-card CHECKING">
+      <div class="card-row1"><span class="app-name" style="color:var(--muted)">Checking…</span><span class="badge CHECKING">…</span></div>
+    </div>`).join('');
+
+  try {
+    const res  = await fetch('/api/health');
+    const apps = await res.json();
+    const up   = apps.filter(a => a.status === 'UP').length;
+    const down = apps.filter(a => a.status === 'DOWN').length;
+
+    bar.innerHTML = `
+      <div class="s-chip">Total <strong>${apps.length}</strong></div>
+      <div class="s-chip up">Up <strong>${up}</strong></div>
+      <div class="s-chip down">Down <strong>${down}</strong></div>
+    `;
+
+    grid.innerHTML = apps.map(a => `
+      <div class="app-card ${a.status}">
+        <div class="card-row1">
+          <span class="app-name">${a.name}</span>
+          <span class="badge ${a.status}">${a.status}</span>
+        </div>
+        <div class="app-url">${a.url}</div>
+        <div class="card-meta">
+          <span class="http-code">HTTP ${a.code}</span>
+          <span class="server-count">${a.server_count} server${a.server_count !== 1 ? 's' : ''}</span>
+        </div>
+        <div class="server-tags">
+          ${a.servers.map(s => `<span class="server-tag">${s}</span>`).join('')}
+        </div>
+        <div class="status-bar"><div class="status-fill ${a.status}"></div></div>
+      </div>
+    `).join('');
+  } catch(e) {
+    grid.innerHTML = `<div class="app-card"><div class="app-name" style="color:var(--red)">Backend unreachable.</div></div>`;
+  }
+  btn.classList.remove('spin');
+}
+
+loadHealth();
+setInterval(loadHealth, 60000);
+
+// ── Load hint chips dynamically from /api/apps ────────────────────────────────
+async function loadHints() {
+  try {
+    const res  = await fetch('/api/apps');
+    const apps = await res.json();
+    const row  = document.getElementById('hintRow');
+    const hints = [];
+    apps.slice(0, 5).forEach(a => {
+      hints.push(`start ${a.name}`, `status ${a.name}`);
+    });
+    row.innerHTML = hints.slice(0, 8).map(h =>
+      `<span class="hint-chip" onclick="fillHint(this)">${h}</span>`
+    ).join('');
+  } catch(e) {}
+}
+loadHints();
+
+function fillHint(el) {
+  document.getElementById('chatInput').value = el.textContent.trim();
+  document.getElementById('chatInput').focus();
+}
+
+// ── Chat ──────────────────────────────────────────────────────────────────────
+function appendBubble(role, text, serverBtns) {
+  const history = document.getElementById('chatHistory');
+  const div = document.createElement('div');
+  div.className = `bubble ${role}`;
+
+  // Format: wrap lines starting with "Command:" in cmd-block
+  const formatted = text
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/(Command: .+)/g, '<span class="cmd-block">$1</span>');
+
+  let btnsHtml = '';
+  if (serverBtns && serverBtns.length) {
+    btnsHtml = `<div class="server-btns">` +
+      serverBtns.map((s,i) =>
+        `<button class="server-btn" onclick="pickServer('${s.host}','${s.label}')">${i+1}. ${s.label}</button>`
+      ).join('') +
+    `</div>`;
+  }
+
+  div.innerHTML = `
+    <div class="bubble-label">${role === 'user' ? 'YOU' : 'HORIZON BOT'}</div>
+    <div class="bubble-body">${formatted}${btnsHtml}</div>
+  `;
+  history.appendChild(div);
+  history.scrollTop = history.scrollHeight;
+}
+
+function showTyping() {
+  const history = document.getElementById('chatHistory');
+  const div = document.createElement('div');
+  div.className = 'bubble bot'; div.id = 'typingBubble';
+  div.innerHTML = `<div class="bubble-label">HORIZON BOT</div><div class="bubble-body"><div class="typing-dots"><span></span><span></span><span></span></div></div>`;
+  history.appendChild(div);
+  history.scrollTop = history.scrollHeight;
+}
+function removeTyping() { const el = document.getElementById('typingBubble'); if(el) el.remove(); }
+
+async function sendChat(overrideMsg) {
+  const input  = document.getElementById('chatInput');
+  const sendBtn= document.getElementById('sendBtn');
+  const msg    = overrideMsg || input.value.trim();
+  if (!msg) return;
+
+  input.value = '';
+  sendBtn.disabled = true;
+  appendBubble('user', msg);
+  showTyping();
+
+  try {
+    const res  = await fetch('/api/chat', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ message: msg, session_id: SESSION_ID })
+    });
+    const data = await res.json();
+    removeTyping();
+
+    // Check if reply contains server list (backend asks which server)
+    // Backend sends server list as plain text; we parse it on frontend
+    // But we also get server buttons from the pending state via a special key
+    appendBubble('bot', data.reply, data.servers || null);
+  } catch(e) {
+    removeTyping();
+    appendBubble('bot', '❌ Cannot reach backend. Is Flask running?');
+  }
+
+  sendBtn.disabled = false;
+  input.focus();
+}
+
+function pickServer(host, label) {
+  sendChat(label);
+}
+</script>
+</body>
+</html>
